@@ -1,7 +1,8 @@
-import json
 import six
 assert six.PY3, "run me with python3"
 
+import json
+import traceback
 import lwvlib
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
@@ -17,13 +18,13 @@ from keras.initializers import Zeros
 
 from keras.models import Model
 from keras.layers import Dense, Dropout, Activation, Merge, Input, merge
-from keras.layers.core import Masking, Flatten
+from keras.layers.core import Masking, Flatten, Lambda
 from keras.layers.recurrent import LSTM, GRU
 from keras.optimizers import SGD, Adam, Nadam
 from keras.callbacks import Callback,ModelCheckpoint
 import pickle
 import sys
-from keras.utils import plot_model
+from keras.utils import plot_model, normalize
 import keras.backend as K
 
 def get_char_sequences(words,char_dict,max_seq_len,learn_dict):
@@ -81,23 +82,27 @@ if __name__=="__main__":
     lstm_5_in=Concatenate()([lstm_4, lstm_3, lstm_lr])
     lstm_5=GRU(units=wv_model.vectors.shape[1],name="lstm5",activation="tanh")(lstm_5_in)
     #nonlin=Dense(wv_model.vectors.shape[1], activation="tanh", name="nonlin1")(lstm_1)
+    #l2_norm = Lambda(lambda  x: K.l2_normalize(x,axis=-1))(lstm_5)
     lin_out=Dense(wv_model.vectors.shape[1],name="linout")(lstm_5)
 
-    model=Model(inputs=[inp_chars],outputs=[lin_out])#lin_out)
-    model.compile(optimizer=Nadam(lr=0.005, beta_1=0.9, beta_2=0.9), loss='mse')
+    model=Model(inputs=[inp_chars],outputs=[lin_out])
+    model.compile(optimizer=Adam(lr=0.005, beta_1=0.9, beta_2=0.9), loss='mse')
     
-    plot_model(model, show_shapes=True, to_file='model.png')
+    plot_model(model, show_shapes=True, to_file=args.model_base+'.structure.png')
     with open(args.model_base+".chardict.json","w") as f:
         json.dump(char_dict,f)
-    save_cb=ModelCheckpoint(filepath=args.model_base+".{epoch:02d}-{val_loss:.2f}.hdf5",verbose=1,save_best_only=True)
+    save_cb=ModelCheckpoint(filepath=args.model_base+".{epoch:02d}-{val_loss:.5f}.hdf5",verbose=1,save_best_only=True)
 
     split=int(len(char_sequences)*0.8)
     train_ends=split
     val_begins=split
+    vectors=wv_model.vectors
+    #vectors=normalize(wv_model.vectors)
     while True:
         try:
-            model.fit(char_sequences[:train_ends],wv_model.vectors[:train_ends],batch_size=500,epochs=50,verbose=1, validation_data=(char_sequences[val_begins:],wv_model.vectors[val_begins:]),callbacks=[save_cb])
+            model.fit(char_sequences[:train_ends],vectors[:train_ends],batch_size=500,epochs=50,verbose=1, validation_data=(char_sequences[val_begins:],vectors[val_begins:]),callbacks=[save_cb])
             break
         except:
+            traceback.print_exc()
             import pdb
             pdb.set_trace()

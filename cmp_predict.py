@@ -63,6 +63,7 @@ if __name__=="__main__":
             w=input("> ")
             char_sequences=cmp.get_char_sequences([w.strip()],char_dict,args.max_seq_len,learn_dict=False)
             predicted=normalize(model.predict(char_sequences))
+            #print("predicted",predicted)
             nearest=new_w2v.nearest_to_normv(predicted[0],10)
             for sim,neighb in nearest:
                 print("{:.2f} {:15s}".format(sim,neighb),"       ",end="")
