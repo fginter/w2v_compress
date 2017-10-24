@@ -28,6 +28,11 @@ from keras.utils import plot_model
 import keras.backend as K
 from keras.utils import normalize
 
+try:
+    import readline
+except:
+    print("readline module missing, interactive input loses some editing capability",file=sys.stderr)
+
 
 import cmp
 
@@ -65,6 +70,14 @@ if __name__=="__main__":
             predicted=normalize(model.predict(char_sequences))
             #print("predicted",predicted)
             nearest=new_w2v.nearest_to_normv(predicted[0],10)
+            print("Nearest within model")
+            for sim,neighb in nearest:
+                print("{:.2f} {:15s}".format(sim,neighb),"       ",end="")
+                print()
+            print()
+            print()
+            nearest=wv_model.nearest_to_normv(predicted[0],10)
+            print("Nearest relative to orig")
             for sim,neighb in nearest:
                 print("{:.2f} {:15s}".format(sim,neighb),"       ",end="")
                 print()
